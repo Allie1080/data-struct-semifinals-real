@@ -32,7 +32,7 @@ public:
     Health();
     Health(int maxHealth);
     int getCurrent();
-    int getMax();
+    constexpr int getMax() {return _max;};
     void decrease(int damage);
     void increase(int heal);
 };
@@ -48,13 +48,16 @@ private:
 public:
     Enemy();
     Enemy(Type type, Size size, int level, std::string name);
-    std::string type() const;
-        int getCurrentHealth ();
-    int getMaxHealth ();
-    TypeEffectivenessMultiplier checkTypeEffectiveness(Type opposingType) const;
+    constexpr Type getType() {return _type;};
+    constexpr int getAttack () {return _attack;};
+    constexpr int getCriticalHealth () {return _health.getMax() / 4;};
+    constexpr int getMaxHealth () {return _health.getMax();};
+    int getCurrentHealth ();
+    std::string getName() const {return _name;};
+    TypeEffectivenessMultiplier checkTypeEffectiveness(Type opposingType);
     std::string getStringTemp();
     bool isDefeated();
-    void takeDamage(int damage, Type opposingType);
+    int takeDamage(int damage, Type opposingType);
 };
 
 class Player {
@@ -67,13 +70,16 @@ private:
 public:
     Player();    
     Player(int maxHealth, Type shieldingType);    
-    std::string type () const;
+    constexpr Type getType() {return _shieldingType;};
+    constexpr int getAttack () {return _attack;};
+    constexpr int getCriticalHealth () {return _health.getMax() / 4;};
+    constexpr int getMaxHealth () {return _health.getMax();};
     int getCurrentHealth ();
-    int getMaxHealth ();
-    TypeEffectivenessMultiplier checkTypeEffectiveness (Type opposingType) const;
+    TypeEffectivenessMultiplier checkTypeEffectiveness (Type opposingType);
     std::string getStringTemp ();
     bool isDefeated ();
-    void takeDamage (int damage, Type opposingType);
+    int takeDamage (int damage, Type opposingType);
+    void heal (int healAmount);
 
 
 };

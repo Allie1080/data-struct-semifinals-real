@@ -112,13 +112,43 @@ struct Action {
     int value;
 };
 
-void updateCharacterStatistics (Health* playerHealth, Health* enemyHealth) {
-    // redundant?
+enum class Spells {
+    MAGIC_MISSILE = 0,
+    FLAMETHROWER,
+    WATERGUN,
+    SAP_LIFE,
 
-    ImGui::Text("Player Health: %d/%d", playerHealth->getCurrent(), playerHealth->getMax());
-    ImGui::SameLine();
-    ImGui::Text("Enemy Health: %d/%d", enemyHealth->getCurrent(), enemyHealth->getMax());
+};
 
+void updateCharacterStatistics (Player* player) {
+
+    if (player->getCurrentHealth() <= player->getCriticalHealth()) {
+        ImGui::Text("Player HP: ");
+        ImGui::SameLine();
+        ImGui::TextColored(RED, "%d/%d", player->getCurrentHealth(), player->getMaxHealth());
+        
+
+    } else {
+        ImGui::Text("Player HP:  %d/%d", player->getCurrentHealth(), player->getMaxHealth());
+
+    }
+    
+}
+
+void updateCharacterStatistics (Enemy* enemy, bool isFront=false) {
+    if (!isFront) {
+        ImGui::TextDisabled("%s's HP:  %d/%d", enemy->getName().c_str(), enemy->getCurrentHealth(), enemy->getMaxHealth());
+
+    } else if (enemy->getCurrentHealth() <= enemy->getCriticalHealth()) {
+        ImGui::Text("%s's HP: ", enemy->getName().c_str());
+        ImGui::SameLine();
+        ImGui::TextColored(RED, "%d/%d", enemy->getCurrentHealth(), enemy->getMaxHealth());
+
+    } else {
+        ImGui::Text("%s's HP:  %d/%d", enemy->getName().c_str(), enemy->getCurrentHealth(), enemy->getMaxHealth());
+
+    }
+    
 }
 
 bool isEnemyTurn (bool isPlayerTurn, std::chrono::time_point<std::chrono::system_clock> lastTurn) {
@@ -134,7 +164,48 @@ bool isEnemyTurn (bool isPlayerTurn, std::chrono::time_point<std::chrono::system
     return false;
 }
 
-void attack () {}
+void castSpell (Player *player, Enemy *enemy, int spellIndex) {
+    float attackBonus;
+    Type attackType;
+    int healValue;
+    int spellAttackValue;
+
+    switch(static_cast<Spells>(spellIndex)) {
+        case Spells::MAGIC_MISSILE:
+            attackBonus = 0;
+            attackType = Type::NORMAL;
+            break;
+
+        case Spells::FLAMETHROWER:
+            attackBonus = 0.5;
+            attackType = Type::FIRE;
+            break;
+            
+        case Spells::WATERGUN:
+            attackBonus = 0.3;
+            attackType = Type::WATER;
+            break;
+
+        case Spells::SAP_LIFE:
+            attackBonus = -0.1;
+            attackType = Type::GRASS;
+            break;
+
+
+    }
+
+    spellAttackValue = player->getAttack() + (player->getAttack() * attackBonus);
+
+    if (attackType == Type::GRASS) {
+        player->heal(enemy->takeDamage(spellAttackValue, attackType));
+
+    } else {
+        enemy->takeDamage(spellAttackValue, attackType);
+
+    }
+
+
+}
 
 
 int main () {
@@ -192,7 +263,7 @@ int main () {
     // Our state
     bool show_demo_window = true;
     bool show_another_window = false;
-    ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+    ImVec4 clear_color = GRAY;
 
     // Main loop
     bool done = false;
@@ -230,8 +301,8 @@ int main () {
             static bool isPlayerTurn{true};
             static std::chrono::time_point<std::chrono::system_clock> lastTurn = std::chrono::system_clock::now(); // should be 2 seconds after this before the enemy makes a move
             
-            static Player *player = new Player(50, NORMAL);
-            static Enemy *enemy = new Enemy(GRASS, Size::MEDIUM, 1, "GRASS DEMON");
+            static Player *player = new Player(100, NORMAL);
+            static Enemy *enemy = new Enemy(WATER, Size::MEDIUM, 3, "OCEAN DEMON");
             static std::string enemyName = "Jonathan";
             
             static std::string spells[] = {"Magic Missile", "Flame Thrower", "Watergun", "Leech Life"};
@@ -241,35 +312,56 @@ int main () {
 
                 if (isPlayerTurn) {
                     ImGui::TextColored(GREEN, "Player's turn...");
+                    clear_color = BLACK;
 
                 } else {
                     ImGui::TextColored(RED, "%s's turn...", enemyName.c_str());
-
+                    clear_color = RED;
+                    
 
                 }
 
                 ImGui::BeginTable("MainInterface", 2);
                     ImGui::TableNextRow(0, TABLE_ROW_HEIGHT);
                         ImGui::TableSetColumnIndex(0);
-                            ImGui::Text("Player Health:  %d/%d", player->getCurrentHealth(), player->getMaxHealth());
+                            updateCharacterStatistics(player);
                         ImGui::TableSetColumnIndex(1);
-                            if (enemy->getCurrentHealth() <= 40) {
-                                ImGui::Text("Enemy Health: ");
-                                ImGui::SameLine();
-                                ImGui::TextColored(RED, "%d/%d", enemy->getCurrentHealth(), enemy->getMaxHealth());
-
-                            } else {
-                                ImGui::Text("Enemy Health:  %d/%d", enemy->getCurrentHealth(), enemy->getMaxHealth());
-
-                            }
+                            updateCharacterStatistics(enemy, true);
 
                     ImGui::TableNextRow(0, TABLE_ROW_HEIGHT);
                         ImGui::TableSetColumnIndex(0);
                         ImGui::TableSetColumnIndex(1);
-                            ImGui::TextDisabled("Enemy Health:  %d/%d", enemy->getCurrentHealth(), enemy->getMaxHealth());
+                        updateCharacterStatistics(enemy);
 
                     ImGui::TableNextRow(0, TABLE_ROW_HEIGHT-1.0);
                         ImGui::TableSetColumnIndex(0);
+                            if (ImGui::Button("Rewind") & !buttonsDisabled) {
+                                
+                                isPlayerTurn = false;
+                                buttonsDisabled = true;
+                                lastTurn = std::chrono::system_clock::now();
+
+                            }
+
+                        ImGui::TableSetColumnIndex(1);
+                            updateCharacterStatistics(enemy);
+
+                    ImGui::TableNextRow(0, TABLE_ROW_HEIGHT);
+                        ImGui::TableSetColumnIndex(0);
+                            // if (buttonsDisabled) {
+                            //     ImGui::PushStyleColor(ImGuiCol_Button, GRAY);
+
+                            // }
+
+                            if (ImGui::Button("Cast Spell") & !buttonsDisabled) {
+                                castSpell(player, enemy, spellSelected);
+                                isPlayerTurn = false;
+                                buttonsDisabled = true;
+                                lastTurn = std::chrono::system_clock::now();
+
+                            } 
+                            ImGui::SameLine();
+
                             if (ImGui::BeginCombo("", spells[spellSelected].c_str())) {
                                 for (int index{0}; index < size(spells); index++) {
                                         const bool is_selected = (spellSelected == index);
@@ -288,32 +380,7 @@ int main () {
                                 ImGui::EndCombo();
 
                             }
-                        ImGui::TableSetColumnIndex(1);
-                            ImGui::TextDisabled("Enemy Health:  %d/%d", enemy->getCurrentHealth(), enemy->getMaxHealth());
 
-                    ImGui::TableNextRow(0, TABLE_ROW_HEIGHT);
-                        ImGui::TableSetColumnIndex(0);
-                            // if (buttonsDisabled) {
-                            //     ImGui::PushStyleColor(ImGuiCol_Button, GRAY);
-
-                            // }
-
-                            if (ImGui::Button("Cast Spell") & !buttonsDisabled) {
-                                enemy->takeDamage(10, NORMAL);
-                                isPlayerTurn = false;
-                                buttonsDisabled = true;
-                                lastTurn = std::chrono::system_clock::now();
-
-                            } 
-                            ImGui::SameLine();
-
-                            if (ImGui::Button("Rewind") & !buttonsDisabled) {
-                                
-                                isPlayerTurn = false;
-                                buttonsDisabled = true;
-                                lastTurn = std::chrono::system_clock::now();
-
-                            }
 
                             // if (buttonsDisabled) {
                             //     ImGui::PopStyleColor();
@@ -325,7 +392,7 @@ int main () {
                 ImGui::EndTable();
 
                 if (isEnemyTurn(isPlayerTurn, lastTurn)) {
-                    player->takeDamage(10, NORMAL);
+                    player->takeDamage(enemy->getAttack(), enemy->getType());
                     isPlayerTurn = true;
                     buttonsDisabled = false;
 
