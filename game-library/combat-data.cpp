@@ -57,6 +57,7 @@ Enemy::Enemy () {
     _type = Type::NORMAL;
     _size = static_cast<int>(Size::SMALL);
     _health = Health(_size);
+    _attack = (_size / 10) + 2;
 
 }
 
@@ -64,9 +65,11 @@ Enemy::Enemy (Type type, Size size, int level, std::string name="Blob") {
     _name = name;
     _type = type;
     _size = static_cast<int>(size);
-    _health = Health(_size * level);
+    _health = Health(_size + (_size * (level / 3)));
+    _attack = ((_size / 10) + 2) + ((_size / 10) * (level / 3));
 
 }
+
 
 std::string Enemy::type () const {
     switch (_type) {
@@ -87,6 +90,16 @@ std::string Enemy::type () const {
         
     }
 
+}
+
+int Enemy::getCurrentHealth() {
+    return _health.getCurrent();
+    
+}
+
+int Enemy::getMaxHealth() {
+    return _health.getMax();
+    
 }
 
 TypeEffectivenessMultiplier Enemy::checkTypeEffectiveness (Type opposingType) const {
@@ -132,7 +145,110 @@ bool Enemy::isDefeated () {
 }
 
 void Enemy::takeDamage (int damage, Type opposingType) {
-    damage *= static_cast<int>((opposingType));
+    damage *= static_cast<int>(checkTypeEffectiveness(opposingType));
+
+    if (damage < 0) {
+        _health.increase(std::abs(damage));
+
+    } else {
+        _health.decrease(damage);
+
+    }
+
+}
+
+Player::Player () {
+    _name = "Marisa";
+    _shieldingType = Type::NORMAL;
+    _health = Health(50);
+    _attack = 5;
+
+}
+
+Player::Player (int maxHealth, Type shieldingType) {
+    _name = "Marisa";
+    _shieldingType = shieldingType;
+    _health = Health(maxHealth);
+    _attack = 5;
+
+}
+
+
+std::string Player::type () const {
+    switch (_shieldingType) {
+        case Type::NORMAL:
+            return "NORMAL";
+
+        case Type::FIRE:
+            return "FIRE";
+
+        case Type::GRASS:
+            return "GRASS";
+
+        case Type::WATER:
+            return "WATER";
+
+        default:
+            return "UNKNOWN";
+        
+    }
+
+}
+
+int Player::getCurrentHealth() {
+    return _health.getCurrent();
+    
+}
+
+int Player::getMaxHealth() {
+    return _health.getMax();
+    
+}
+
+TypeEffectivenessMultiplier Player::checkTypeEffectiveness (Type opposingType) const {
+    if (_shieldingType == Type::NORMAL) {
+        return TypeEffectivenessMultiplier::NORMAL;
+
+    } else if (opposingType == _shieldingType) {
+        return TypeEffectivenessMultiplier::SAME_TYPE;
+
+    } else if (opposingType == _shieldingType + 1) {
+        return TypeEffectivenessMultiplier::IMMUNE;
+
+    } else if (opposingType == Type::NORMAL) {
+        return TypeEffectivenessMultiplier::NORMAL;
+
+    } else if (opposingType == (_shieldingType != 0) ? _shieldingType - 1 : AMOUNT_OF_TYPES - 1) {
+        return TypeEffectivenessMultiplier::VERY_EFFECTIVE;
+
+    } else {
+        return TypeEffectivenessMultiplier::IMMUNE;
+
+    }
+
+}
+
+std::string Player::getStringTemp () {
+    // for testing purposes only
+    std::stringstream stringStream;
+
+    stringStream << "TYPE: " << type() << " HEALTH: " << _health.getCurrent() << "/" << _health.getMax();
+
+    return stringStream.str();
+} 
+
+bool Player::isDefeated () {
+    if (_health.getCurrent() == 0) {
+        return true;
+
+    }
+
+    return false;
+
+}
+
+void Player::takeDamage (int damage, Type opposingType) {
+    damage *= static_cast<int>(checkTypeEffectiveness(opposingType));
 
     if (damage < 0) {
         _health.increase(std::abs(damage));

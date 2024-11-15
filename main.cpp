@@ -10,11 +10,16 @@
 #include "imgui_impl_opengl3.h"
 #include "imgui_impl_opengl3_loader.h"
 
+#include "combat-data.h" //I added it the game-library folder into the INCLUDE in the .bat file, it'll be fine
+
 #include <windows.h>
 #include <GL/GL.h>
 #include <tchar.h>
 
 #include <string>
+#include <iostream>
+#include <sstream>
+#include <chrono>
 
 // #include "stack.h"
 // #include "queue.h"
@@ -95,12 +100,49 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
     return ::DefWindowProcW(hWnd, msg, wParam, lParam);
 }
 
+constexpr ImVec4 GREEN = ImVec4(0.0f, 1.0f, 0.0f, 1.0f);
+constexpr ImVec4 RED = ImVec4(1.0f, 0.0f, 0.0f, 1.0f);
+constexpr ImVec4 BLACK = ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
+constexpr ImVec4 GRAY = ImVec4(0.0f, 0.0f, 0.0f, 0.5f);
+constexpr float TABLE_ROW_HEIGHT = 27.0;
+
+struct Action {
+    std::string from;
+    int type;
+    int value;
+};
+
+void updateCharacterStatistics (Health* playerHealth, Health* enemyHealth) {
+    // redundant?
+
+    ImGui::Text("Player Health: %d/%d", playerHealth->getCurrent(), playerHealth->getMax());
+    ImGui::SameLine();
+    ImGui::Text("Enemy Health: %d/%d", enemyHealth->getCurrent(), enemyHealth->getMax());
+
+}
+
+bool isEnemyTurn (bool isPlayerTurn, std::chrono::time_point<std::chrono::system_clock> lastTurn) {
+    if (isPlayerTurn) {
+        return false;
+
+    }
+
+    if (std::chrono::system_clock::now() - lastTurn > std::chrono::duration<double>(2.0)) {
+        return true;
+    }
+
+    return false;
+}
+
+void attack () {}
+
+
 int main () {
     // Create application window
     //ImGui_ImplWin32_EnableDpiAwareness();
     WNDCLASSEXW wc = { sizeof(wc), CS_OWNDC, WndProc, 0L, 0L, GetModuleHandle(nullptr), nullptr, nullptr, nullptr, nullptr, L"ImGui Example", nullptr };
     ::RegisterClassExW(&wc);
-    HWND hwnd = ::CreateWindowW(wc.lpszClassName, L"Dear ImGui Win32+OpenGL3 Example", WS_OVERLAPPEDWINDOW, 100, 100, 1280, 800, nullptr, nullptr, wc.hInstance, nullptr);
+    HWND hwnd = ::CreateWindowW(wc.lpszClassName, L"The Time Travelling Wizard", WS_OVERLAPPEDWINDOW, 100, 100, 640, 400, nullptr, nullptr, wc.hInstance, nullptr);
 
     // Initialize OpenGL
     if (!CreateDeviceWGL(hwnd, &g_MainWindow))
@@ -121,7 +163,7 @@ int main () {
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO(); (void)io;
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;   // Enable Keyboard Controls
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;    // Enable Gamepad Controls
+    // io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;    // Enable Gamepad Controls
 
     // Setup Dear ImGui style
     ImGui::StyleColorsDark();
@@ -166,8 +208,10 @@ int main () {
             if (msg.message == WM_QUIT)
                 done = true;
         }
+
         if (done)
             break;
+        
         if (::IsIconic(hwnd))
         {
             ::Sleep(10);
@@ -179,40 +223,120 @@ int main () {
         ImGui_ImplWin32_NewFrame();
         ImGui::NewFrame();
 
-        // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
-        if (show_demo_window)
-            ImGui::ShowDemoWindow(&show_demo_window);
-
-        // 2. Show a simple window that we create ourselves. We use a Begin/End pair to create a named window.
+            // 2. Show a simple window that we create ourselves. We use a Begin/End pair to create a named window.
         {
-            static float f = 0.0f;
-            static int counter = 0;
+            static bool buttonsDisabled{false};
 
-            ImGui::Begin("Hello, world!");                          // Create a window called "Hello, world!" and append into it.
+            static bool isPlayerTurn{true};
+            static std::chrono::time_point<std::chrono::system_clock> lastTurn = std::chrono::system_clock::now(); // should be 2 seconds after this before the enemy makes a move
+            
+            static Player *player = new Player(50, NORMAL);
+            static Enemy *enemy = new Enemy(GRASS, Size::MEDIUM, 1, "GRASS DEMON");
+            static std::string enemyName = "Jonathan";
+            
+            static std::string spells[] = {"Magic Missile", "Flame Thrower", "Watergun", "Leech Life"};
+            static int spellSelected{0};
 
-            ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
-            ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our window open/close state
-            ImGui::Checkbox("Another Window", &show_another_window);
+            ImGui::Begin("Game Window");
 
-            ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
-            ImGui::ColorEdit3("clear color", (float*)&clear_color); // Edit 3 floats representing a color
+                if (isPlayerTurn) {
+                    ImGui::TextColored(GREEN, "Player's turn...");
 
-            if (ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
-                counter++;
-            ImGui::SameLine();
-            ImGui::Text("counter = %d", counter);
+                } else {
+                    ImGui::TextColored(RED, "%s's turn...", enemyName.c_str());
 
-            ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
+
+                }
+
+                ImGui::BeginTable("MainInterface", 2);
+                    ImGui::TableNextRow(0, TABLE_ROW_HEIGHT);
+                        ImGui::TableSetColumnIndex(0);
+                            ImGui::Text("Player Health:  %d/%d", player->getCurrentHealth(), player->getMaxHealth());
+                        ImGui::TableSetColumnIndex(1);
+                            if (enemy->getCurrentHealth() <= 40) {
+                                ImGui::Text("Enemy Health: ");
+                                ImGui::SameLine();
+                                ImGui::TextColored(RED, "%d/%d", enemy->getCurrentHealth(), enemy->getMaxHealth());
+
+                            } else {
+                                ImGui::Text("Enemy Health:  %d/%d", enemy->getCurrentHealth(), enemy->getMaxHealth());
+
+                            }
+
+                    ImGui::TableNextRow(0, TABLE_ROW_HEIGHT);
+                        ImGui::TableSetColumnIndex(0);
+                        ImGui::TableSetColumnIndex(1);
+                            ImGui::TextDisabled("Enemy Health:  %d/%d", enemy->getCurrentHealth(), enemy->getMaxHealth());
+
+                    ImGui::TableNextRow(0, TABLE_ROW_HEIGHT-1.0);
+                        ImGui::TableSetColumnIndex(0);
+                            if (ImGui::BeginCombo("", spells[spellSelected].c_str())) {
+                                for (int index{0}; index < size(spells); index++) {
+                                        const bool is_selected = (spellSelected == index);
+                                        
+                                        if (ImGui::Selectable(spells[index].c_str(), is_selected)) {
+                                            spellSelected = index;
+
+                                        }
+
+                                        if (is_selected) {
+                                                ImGui::SetItemDefaultFocus();
+
+                                        }
+
+                                }
+                                ImGui::EndCombo();
+
+                            }
+                        ImGui::TableSetColumnIndex(1);
+                            ImGui::TextDisabled("Enemy Health:  %d/%d", enemy->getCurrentHealth(), enemy->getMaxHealth());
+
+                    ImGui::TableNextRow(0, TABLE_ROW_HEIGHT);
+                        ImGui::TableSetColumnIndex(0);
+                            // if (buttonsDisabled) {
+                            //     ImGui::PushStyleColor(ImGuiCol_Button, GRAY);
+
+                            // }
+
+                            if (ImGui::Button("Cast Spell") & !buttonsDisabled) {
+                                enemy->takeDamage(10, NORMAL);
+                                isPlayerTurn = false;
+                                buttonsDisabled = true;
+                                lastTurn = std::chrono::system_clock::now();
+
+                            } 
+                            ImGui::SameLine();
+
+                            if (ImGui::Button("Rewind") & !buttonsDisabled) {
+                                
+                                isPlayerTurn = false;
+                                buttonsDisabled = true;
+                                lastTurn = std::chrono::system_clock::now();
+
+                            }
+
+                            // if (buttonsDisabled) {
+                            //     ImGui::PopStyleColor();
+
+                            // }
+
+                        ImGui::TableSetColumnIndex(1);
+
+                ImGui::EndTable();
+
+                if (isEnemyTurn(isPlayerTurn, lastTurn)) {
+                    player->takeDamage(10, NORMAL);
+                    isPlayerTurn = true;
+                    buttonsDisabled = false;
+
+                }
+
+                ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
             ImGui::End();
         }
 
-        // 3. Show another simple window.
-        if (show_another_window)
-        {
-            ImGui::Begin("Another Window", &show_another_window);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
-            ImGui::Text("Hello from another window!");
-            if (ImGui::Button("Close Me"))
-                show_another_window = false;
+        if (false) {
+            ImGui::Begin("GAME OVER");
             ImGui::End();
         }
 
