@@ -1,44 +1,40 @@
-#ifndef COMBAT_DATA_H
-#define COMBAT_DATA_H
+#ifndef STACK_H
+#define STACK_H
 
 #include <string>
 
 enum class Size {
-    SMALL = 10,
-    MEDIUM = 30,
-    LARGE = 50
-
+    SMALL,
+    MEDIUM,
+    LARGE
 };
 
 enum Type {
-    NORMAL = -1,
+    NORMAL,
     FIRE,
     WATER,
     GRASS
-
 };
 
 enum class TypeEffectivenessMultiplier {
-    SAME_TYPE = -1,
+    SAME_TYPE,
     IMMUNE,
     NORMAL,
-    VERY_EFFECTIVE,
-
+    VERY_EFFECTIVE
 };
 
-class Health  {
+class Health {
 private:
     int _current;
     int _max;
 
 public:
-    Health ();
-    Health (int maxHealth);
-    int getCurrent ();
-    int getMax ();
-    void decrease (int damage);
-    void increase (int heal);
-
+    Health();
+    Health(int maxHealth);
+    int getCurrent();
+    int getMax();
+    void decrease(int damage);
+    void increase(int heal);
 };
 
 class Enemy {
@@ -49,17 +45,15 @@ private:
     Health _health;
 
 public:
-    Enemy ();
-    Enemy (Type type, Size size, int level, std::string name);
-    std::string type () const;
-    TypeEffectivenessMultiplier checkTypeEffectiveness (Type opposingType) const;
-    std::string getStringTemp ();
-    bool isDefeated ();
-    void takeDamage (int damage, Type opposingType);
-
+    Enemy();
+    Enemy(Type type, Size size, int level, std::string name);
+    std::string type() const;
+    TypeEffectivenessMultiplier checkTypeEffectiveness(Type opposingType) const;
+    std::string getStringTemp();
+    bool isDefeated();
+    void takeDamage(int damage, Type opposingType);
 };
 
-Enemy getRandomEnemy (int level);
-
+Enemy getRandomEnemy(int level);
 
 #endif
