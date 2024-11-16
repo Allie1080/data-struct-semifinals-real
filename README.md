@@ -9,4 +9,4 @@
 - Rotating Enemy Queue
 - Actions Archiver View
 - Rewind Functionality
-- Game Over Screen
+- Game Over Screen: 50%

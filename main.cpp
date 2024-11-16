@@ -102,9 +102,10 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 }
 
 constexpr ImVec4 GREEN = ImVec4(0.0f, 1.0f, 0.0f, 1.0f);
-constexpr ImVec4 RED = ImVec4(1.0f, 0.0f, 0.0f, 0.9f);
+constexpr ImVec4 RED = ImVec4(0.8f, 0.0f, 0.0f, 1.0f);
 constexpr ImVec4 BLACK = ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
-constexpr ImVec4 GRAY = ImVec4(0.0f, 0.0f, 0.0f, 0.5f);
+constexpr ImVec4 GRAY = ImVec4(0.8f, 0.8f, 0.8f, 1.0f);
+constexpr ImVec4 LIGHT_GRAY = ImVec4(0.5f, 0.5f, 0.5f, 1.0f);
 constexpr float TABLE_ROW_HEIGHT = 27.0;
 
 enum class Spells {
@@ -356,7 +357,10 @@ int main () {
 
             ImGui::Begin("Game Window");
 
-                if (isPlayerTurn) {
+                if (gameWon | gameLost) {
+                    ImGui::TextColored(LIGHT_GRAY, "GAME OVER");
+
+                } else if (isPlayerTurn) {
                     ImGui::TextColored(GREEN, "Player's turn...");
                     clear_color = BLACK;
                     // buttonsDisabled = false;
@@ -452,7 +456,7 @@ int main () {
 
                 }
 
-                if (isEnemyTurn(isPlayerTurn, lastTurn)) {
+                if (isEnemyTurn(isPlayerTurn, lastTurn) & !(gameWon | gameLost)) {
                     player->takeDamage(currentEnemy->getAttack(), currentEnemy->getType());
                     isPlayerTurn = true;
                     buttonsDisabled = false;
@@ -461,11 +465,9 @@ int main () {
 
                 if (currentEnemy->getCurrentHealth() == 0) {
                     gameWon = true;
-                    buttonsDisabled = true;
 
                 } else if (player->getCurrentHealth() == 0) {
                     gameLost = true;
-                    buttonsDisabled = true;
 
                 }
 
@@ -473,12 +475,14 @@ int main () {
             ImGui::End();
         }
 
-        if (gameWon) {
+        if (gameWon | gameLost) {
+            buttonsDisabled = true;
+
             ImGui::Begin("GAME OVER");
-                ImGui::Text("You won!");
+                ImGui::Text(((gameWon) ? "You won!" : "You lost!"));
             ImGui::End();
 
-        }
+        } 
 
         // Rendering
         ImGui::Render();
