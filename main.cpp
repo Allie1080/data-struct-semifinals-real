@@ -303,6 +303,7 @@ int main () {
      
     static bool gameWon{false};
     static bool gameLost{false};
+    static int gameScore{10000};
 
     static bool isPlayerTurn{true};
     static std::chrono::time_point<std::chrono::system_clock> lastTurn = std::chrono::system_clock::now(); // should be 2 seconds after this before the enemy makes a move
