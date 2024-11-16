@@ -40,7 +40,7 @@ int Queue::dequeue (bool isInsideFunction=false) {
 
     // std::cout << "is not empty" << '\n';
 
-    qNode* temp = _front;
+    qNode *temp = _front;
     // std::cout << "temp created" << '\n';
     _front = _front->_next;
     // std::cout << "front moved" << '\n';
