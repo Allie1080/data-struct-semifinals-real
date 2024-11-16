@@ -11,13 +11,14 @@
 #include "imgui_impl_opengl3_loader.h"
 
 #include "combat-data.h" //I added it the game-library folder into the INCLUDE in the .bat file, it'll be fine
+#include "queue_stack.h"
 
 #include <windows.h>
 #include <GL/GL.h>
 #include <tchar.h>
 
-#include <string>
 #include <iostream>
+#include <string>
 #include <sstream>
 #include <chrono>
 
@@ -106,12 +107,6 @@ constexpr ImVec4 BLACK = ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
 constexpr ImVec4 GRAY = ImVec4(0.0f, 0.0f, 0.0f, 0.5f);
 constexpr float TABLE_ROW_HEIGHT = 27.0;
 
-struct Action {
-    std::string from;
-    int type;
-    int value;
-};
-
 enum class Spells {
     MAGIC_MISSILE = 0,
     FLAMETHROWER,
@@ -120,7 +115,27 @@ enum class Spells {
 
 };
 
-void updateCharacterStatistics (Player* player) {
+Enemy viewEnemy (Queue queue, int placementIndex=0) {
+    Enemy enemy;
+  
+    if (placementIndex !=0) {
+        for (int counter{0}; counter < placementIndex; counter++) {
+            queue.dequeue(true);
+
+        }
+
+    } else {
+        std::cout << "Not executed" << '\n';
+
+    }
+
+    enemy = queue.peek();
+
+    return enemy;
+
+}
+
+void updateCharacterStatistics (Player *player) {
 
     if (player->getCurrentHealth() <= player->getCriticalHealth()) {
         ImGui::Text("Player HP: ");
@@ -135,21 +150,37 @@ void updateCharacterStatistics (Player* player) {
     
 }
 
-void updateCharacterStatistics (Enemy* enemy, bool isFront=false) {
+void updateCharacterStatistics (Enemy enemy, bool isFront=false) {
     if (!isFront) {
-        ImGui::TextDisabled("%s's HP:  %d/%d", enemy->getName().c_str(), enemy->getCurrentHealth(), enemy->getMaxHealth());
+        ImGui::TextDisabled("%s's HP:  %d/%d", enemy.getName().c_str(), enemy.getCurrentHealth(), enemy.getMaxHealth());
 
-    } else if (enemy->getCurrentHealth() <= enemy->getCriticalHealth()) {
-        ImGui::Text("%s's HP: ", enemy->getName().c_str());
+    } else if (enemy.getCurrentHealth() <= enemy.getCriticalHealth()) {
+        ImGui::Text("%s's HP: ", enemy.getName().c_str());
         ImGui::SameLine();
-        ImGui::TextColored(RED, "%d/%d", enemy->getCurrentHealth(), enemy->getMaxHealth());
+        ImGui::TextColored(RED, "%d/%d", enemy.getCurrentHealth(), enemy.getMaxHealth());
 
     } else {
-        ImGui::Text("%s's HP:  %d/%d", enemy->getName().c_str(), enemy->getCurrentHealth(), enemy->getMaxHealth());
+        ImGui::Text("%s's HP:  %d/%d", enemy.getName().c_str(), enemy.getCurrentHealth(), enemy.getMaxHealth());
 
     }
-    
+
 }
+
+// void updateCharacterStatistics (Enemy *enemy, bool isFront=false) {
+//     if (!isFront) {
+//         ImGui::TextDisabled("%s's HP:  %d/%d", enemy->getName().c_str(), enemy->getCurrentHealth(), enemy->getMaxHealth());
+
+//     } else if (enemy->getCurrentHealth() <= enemy->getCriticalHealth()) {
+//         ImGui::Text("%s's HP: ", enemy->getName().c_str());
+//         ImGui::SameLine();
+//         ImGui::TextColored(RED, "%d/%d", enemy->getCurrentHealth(), enemy->getMaxHealth());
+
+//     } else {
+//         ImGui::Text("%s's HP:  %d/%d", enemy->getName().c_str(), enemy->getCurrentHealth(), enemy->getMaxHealth());
+
+//     }
+
+// }
 
 bool isEnemyTurn (bool isPlayerTurn, std::chrono::time_point<std::chrono::system_clock> lastTurn) {
     if (isPlayerTurn) {
@@ -206,6 +237,7 @@ void castSpell (Player *player, Enemy *enemy, int spellIndex) {
 
 
 }
+
 
 
 int main () {
@@ -265,6 +297,28 @@ int main () {
     bool show_another_window = false;
     ImVec4 clear_color = GRAY;
 
+    // Game-related declarations
+    static bool buttonsDisabled{false};
+
+    static bool isPlayerTurn{true};
+    static std::chrono::time_point<std::chrono::system_clock> lastTurn = std::chrono::system_clock::now(); // should be 2 seconds after this before the enemy makes a move
+    
+    static std::string spells[] = {"Magic Missile", "Flame Thrower", "Watergun", "Leech Life"};
+    static int spellSelected{0};
+
+    static Queue *enemyQueue = new Queue();
+    enemyQueue->enqueue(Enemy(WATER, Size::MEDIUM, 3, "OCEAN DEMON"));
+    enemyQueue->enqueue(Enemy(WATER, Size::MEDIUM, 3, "FOREST DEMON"));
+    enemyQueue->enqueue(Enemy(WATER, Size::MEDIUM, 3, "MAGMA DEMON"));
+
+    static Player *player = new Player(100, NORMAL);
+    Enemy currentEnemyValue = enemyQueue->peek();
+    Enemy *currentEnemy = &currentEnemyValue;
+
+    Enemy secondEnemyPreview = viewEnemy(*enemyQueue, 1);
+    Enemy lastEnemyPreview = viewEnemy(*enemyQueue);
+
+
     // Main loop
     bool done = false;
     while (!done)
@@ -296,17 +350,6 @@ int main () {
 
             // 2. Show a simple window that we create ourselves. We use a Begin/End pair to create a named window.
         {
-            static bool buttonsDisabled{false};
-
-            static bool isPlayerTurn{true};
-            static std::chrono::time_point<std::chrono::system_clock> lastTurn = std::chrono::system_clock::now(); // should be 2 seconds after this before the enemy makes a move
-            
-            static Player *player = new Player(100, NORMAL);
-            static Enemy *enemy = new Enemy(WATER, Size::MEDIUM, 3, "OCEAN DEMON");
-            static std::string enemyName = "Jonathan";
-            
-            static std::string spells[] = {"Magic Missile", "Flame Thrower", "Watergun", "Leech Life"};
-            static int spellSelected{0};
 
             ImGui::Begin("Game Window");
 
@@ -315,9 +358,8 @@ int main () {
                     clear_color = BLACK;
 
                 } else {
-                    ImGui::TextColored(RED, "%s's turn...", enemyName.c_str());
-                    clear_color = RED;
-                    
+                    ImGui::TextColored(RED, "%s's turn...", currentEnemy->getName().c_str());
+                    clear_color = RED; 
 
                 }
 
@@ -326,12 +368,12 @@ int main () {
                         ImGui::TableSetColumnIndex(0);
                             updateCharacterStatistics(player);
                         ImGui::TableSetColumnIndex(1);
-                            updateCharacterStatistics(enemy, true);
+                            updateCharacterStatistics(currentEnemyValue, true);
 
                     ImGui::TableNextRow(0, TABLE_ROW_HEIGHT);
                         ImGui::TableSetColumnIndex(0);
                         ImGui::TableSetColumnIndex(1);
-                        updateCharacterStatistics(enemy);
+                        updateCharacterStatistics(secondEnemyPreview);
 
                     ImGui::TableNextRow(0, TABLE_ROW_HEIGHT-1.0);
                         ImGui::TableSetColumnIndex(0);
@@ -344,7 +386,7 @@ int main () {
                             }
 
                         ImGui::TableSetColumnIndex(1);
-                            updateCharacterStatistics(enemy);
+                            updateCharacterStatistics(lastEnemyPreview);
 
                     ImGui::TableNextRow(0, TABLE_ROW_HEIGHT);
                         ImGui::TableSetColumnIndex(0);
@@ -354,7 +396,7 @@ int main () {
                             // }
 
                             if (ImGui::Button("Cast Spell") & !buttonsDisabled) {
-                                castSpell(player, enemy, spellSelected);
+                                castSpell(player, currentEnemy, spellSelected);
                                 isPlayerTurn = false;
                                 buttonsDisabled = true;
                                 lastTurn = std::chrono::system_clock::now();
@@ -392,7 +434,7 @@ int main () {
                 ImGui::EndTable();
 
                 if (isEnemyTurn(isPlayerTurn, lastTurn)) {
-                    player->takeDamage(enemy->getAttack(), enemy->getType());
+                    player->takeDamage(currentEnemy->getAttack(), currentEnemy->getType());
                     isPlayerTurn = true;
                     buttonsDisabled = false;
 
@@ -402,10 +444,11 @@ int main () {
             ImGui::End();
         }
 
-        if (false) {
-            ImGui::Begin("GAME OVER");
-            ImGui::End();
-        }
+        // if (false) {
+        //     ImGui::Begin("GAME OVER");
+        //     ImGui::End();
+
+        // }
 
         // Rendering
         ImGui::Render();

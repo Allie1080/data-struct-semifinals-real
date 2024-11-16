@@ -84,5 +84,15 @@ public:
 
 };
 
+struct Action {
+    std::string _type;
+    int _value;
+    Player* _playerTarget;
+    Enemy* _enemyTarget;
 
-#endif
+    Action();
+
+};
+
+
+#endif // COMBAT_DATA_H

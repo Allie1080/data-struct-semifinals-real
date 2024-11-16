@@ -53,7 +53,7 @@ void Health::increase (int heal) {
 }
 
 Enemy::Enemy () {
-    _name = "Blob";
+    _name = "ERROR";
     _type = Type::NORMAL;
     _size = static_cast<int>(Size::SMALL);
     _health = Health(_size);
@@ -331,3 +331,8 @@ Enemy getRandomEnemy (int level) {
 }
 
 
+Action::Action () {
+    _type = "None";
+    _value = -1;
+
+}
