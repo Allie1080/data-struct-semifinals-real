@@ -102,7 +102,7 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 }
 
 constexpr ImVec4 GREEN = ImVec4(0.0f, 1.0f, 0.0f, 1.0f);
-constexpr ImVec4 RED = ImVec4(1.0f, 0.0f, 0.0f, 1.0f);
+constexpr ImVec4 RED = ImVec4(1.0f, 0.0f, 0.0f, 0.9f);
 constexpr ImVec4 BLACK = ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
 constexpr ImVec4 GRAY = ImVec4(0.0f, 0.0f, 0.0f, 0.5f);
 constexpr float TABLE_ROW_HEIGHT = 27.0;
@@ -299,6 +299,9 @@ int main () {
 
     // Game-related declarations
     static bool buttonsDisabled{false};
+     
+    static bool gameWon{false};
+    static bool gameLost{false};
 
     static bool isPlayerTurn{true};
     static std::chrono::time_point<std::chrono::system_clock> lastTurn = std::chrono::system_clock::now(); // should be 2 seconds after this before the enemy makes a move
@@ -356,6 +359,7 @@ int main () {
                 if (isPlayerTurn) {
                     ImGui::TextColored(GREEN, "Player's turn...");
                     clear_color = BLACK;
+                    // buttonsDisabled = false;
 
                 } else {
                     ImGui::TextColored(RED, "%s's turn...", currentEnemy->getName().c_str());
@@ -372,16 +376,26 @@ int main () {
 
                     ImGui::TableNextRow(0, TABLE_ROW_HEIGHT);
                         ImGui::TableSetColumnIndex(0);
-                        ImGui::TableSetColumnIndex(1);
-                        updateCharacterStatistics(secondEnemyPreview);
 
-                    ImGui::TableNextRow(0, TABLE_ROW_HEIGHT-1.0);
+                        ImGui::TableSetColumnIndex(1);
+                            updateCharacterStatistics(secondEnemyPreview);
+
+                    ImGui::TableNextRow(0, TABLE_ROW_HEIGHT);
                         ImGui::TableSetColumnIndex(0);
-                            if (ImGui::Button("Rewind") & !buttonsDisabled) {
+                            if (buttonsDisabled) {
+                                ImGui::BeginDisabled();
+
+                            }
+
+                            if (ImGui::Button("Rewind") & isPlayerTurn) {
                                 
                                 isPlayerTurn = false;
-                                buttonsDisabled = true;
                                 lastTurn = std::chrono::system_clock::now();
+
+                            }
+
+                            if (buttonsDisabled) {
+                                ImGui::EndDisabled();
 
                             }
 
@@ -390,20 +404,25 @@ int main () {
 
                     ImGui::TableNextRow(0, TABLE_ROW_HEIGHT);
                         ImGui::TableSetColumnIndex(0);
-                            // if (buttonsDisabled) {
-                            //     ImGui::PushStyleColor(ImGuiCol_Button, GRAY);
+                            if (buttonsDisabled) {
+                                ImGui::BeginDisabled();
 
-                            // }
+                            }
 
                             if (ImGui::Button("Cast Spell") & !buttonsDisabled) {
                                 castSpell(player, currentEnemy, spellSelected);
                                 isPlayerTurn = false;
-                                buttonsDisabled = true;
                                 lastTurn = std::chrono::system_clock::now();
 
                             } 
-                            ImGui::SameLine();
 
+                            if (buttonsDisabled) {
+                                ImGui::EndDisabled();
+
+                            }
+
+
+                        ImGui::TableSetColumnIndex(1);
                             if (ImGui::BeginCombo("", spells[spellSelected].c_str())) {
                                 for (int index{0}; index < size(spells); index++) {
                                         const bool is_selected = (spellSelected == index);
@@ -423,20 +442,30 @@ int main () {
 
                             }
 
-
-                            // if (buttonsDisabled) {
-                            //     ImGui::PopStyleColor();
-
-                            // }
-
-                        ImGui::TableSetColumnIndex(1);
-
                 ImGui::EndTable();
+
+                if (isPlayerTurn) {
+                    buttonsDisabled = false;
+
+                } else {
+                    buttonsDisabled = true;
+
+                }
 
                 if (isEnemyTurn(isPlayerTurn, lastTurn)) {
                     player->takeDamage(currentEnemy->getAttack(), currentEnemy->getType());
                     isPlayerTurn = true;
                     buttonsDisabled = false;
+
+                } 
+
+                if (currentEnemy->getCurrentHealth() == 0) {
+                    gameWon = true;
+                    buttonsDisabled = true;
+
+                } else if (player->getCurrentHealth() == 0) {
+                    gameLost = true;
+                    buttonsDisabled = true;
 
                 }
 
@@ -444,11 +473,12 @@ int main () {
             ImGui::End();
         }
 
-        // if (false) {
-        //     ImGui::Begin("GAME OVER");
-        //     ImGui::End();
+        if (gameWon) {
+            ImGui::Begin("GAME OVER");
+                ImGui::Text("You won!");
+            ImGui::End();
 
-        // }
+        }
 
         // Rendering
         ImGui::Render();
