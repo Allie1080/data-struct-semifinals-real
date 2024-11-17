@@ -32,8 +32,8 @@ int Health::getCurrent () {
 
 // }
 
-void Health::decrease (int damage) {
-    _current -= damage;
+void Health::decrease (int damageAmount) {
+    _current -= damageAmount;
 
     if (_current < 0) {
         _current = 0;
@@ -42,13 +42,66 @@ void Health::decrease (int damage) {
 
 }
 
-void Health::increase (int heal) {
-    _current += heal;
+void Health::increase (int healedAmount) {
+    _current += healedAmount;
 
     if (_current > _max) {
         _current = _max;
 
     }
+
+}
+
+Mana::Mana () {
+        _current = -1;
+        _max = -1;
+}
+
+Mana::Mana (int maxMana) {
+        _current = maxMana;
+        _max = maxMana;
+
+}
+
+// constexpr int Health::getMax () {
+//         return _max;
+
+// }
+
+void Mana::decrease (int consumedAmount) {
+    _current -= consumedAmount;
+
+    if (_current < 0) {
+        _current = 0;
+
+    }
+
+}
+
+void Mana::increase (int regainedAmount) {
+    _current += regainedAmount;
+
+    if (_current > _max) {
+        _current = _max;
+
+    }
+
+}
+
+Spell::Spell () {
+    _name = "MagicMissile";
+    _cost = 5;
+
+}
+
+Spell::Spell (std::string name, int cost) {
+    _name = name;
+    _cost = cost;
+
+}
+
+std::string Spell::getLabel () const {
+    return ("%d MN -- %s", _cost, _name);
 
 }
 
@@ -101,11 +154,6 @@ Enemy::Enemy (Type type, Size size, int level, std::string name="Blob") {
 //     return _attack;
 
 // }
-
-int Enemy::getCurrentHealth() {
-    return _health.getCurrent();
-    
-}
 
 // constexpr int Enemy::getMaxHealth() {
 //     return _health.getMax();
@@ -182,10 +230,12 @@ Player::Player () {
 
 }
 
-Player::Player (int maxHealth, Type shieldingType) {
+Player::Player (int maxHealth, int maxMana, Type shieldingType) {
     _name = "Marisa";
     _shieldingType = shieldingType;
     _health = Health(maxHealth);
+    _mana = Mana(maxMana);
+    _manaRegainAmount = static_cast<int>(maxMana / 10);
     _attack = 5;
 
 }
@@ -218,11 +268,6 @@ Player::Player (int maxHealth, Type shieldingType) {
 //     return _attack;
 
 // }
-
-int Player::getCurrentHealth() {
-    return _health.getCurrent();
-    
-}
 
 // constexpr int Player::getMaxHealth() {
 //     return _health.getMax();
@@ -293,6 +338,16 @@ int Player::takeDamage (int damage, Type opposingType) {
 
 void Player::heal (int healAmount) {
     _health.increase(std::abs(healAmount));
+
+}
+
+void Player::recoverMana () {
+    _health.increase(std::abs(_manaRegainAmount));
+
+}
+
+void Player::recoverMana (int regainedManaAmount) {
+    _health.increase(std::abs(regainedManaAmount));
 
 }
 
