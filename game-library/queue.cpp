@@ -41,9 +41,9 @@ int Queue::dequeue (bool isInsideFunction=false) {
     // std::cout << "is not empty" << '\n';
 
     qNode *temp = _front;
-    // std::cout << "temp created" << '\n';
+    // std::cout << "temp created: " << temp->_data.getName() << '\n';
     _front = _front->_next;
-    // std::cout << "front moved" << '\n';
+    // std::cout << "front moved: " << '\n';
 
     if (_front == nullptr) {
         // std::cout << "front is nullptr" << '\n';
@@ -55,14 +55,23 @@ int Queue::dequeue (bool isInsideFunction=false) {
 
     } 
 
-    if (isInsideFunction) {
+    if (!isInsideFunction) {
         delete temp;
         // std::cout << "temp deleted" << '\n';
 
+    } // else {
+        // std::cout << "Not inside function" << '\n';
+
+    // }
+
+    if (!isEmpty()) {
+        //std::cout << "size will be reduced" << '\n';
+        --_size;
+        //std::cout << "size reduced" << '\n';
+
     }
 
-    --_size;
-    std::cout << "size reduced" << '\n';
+    // std::cout << "size reduced" << '\n';
 
     return 0;
 }
@@ -89,28 +98,34 @@ bool Queue::isEmpty() const {
 
 Queue::~Queue() {
     while (!isEmpty()) {
-        dequeue();
+        dequeue(true); // i hate this bug
+
     }
 }
 
 // Enemy viewEnemy (Queue queue, int placementIndex=0) {
 //     Enemy enemy;
   
-//     std::cout << '\n' << queue.getSize() << '\n';
+//     std::cout << queue.getSize() << '\n';
 //     if (placementIndex != 0) {
 //         for (int counter{0}; counter < placementIndex; counter++) {
 //             std::cout << "Loop executed" << '\n';
+//             std::cout << "Loop executed" << '\n';
 //             queue.dequeue(true);
+//             std::cout << "Dequeue executed" << '\n';
 //             std::cout << "Dequeue executed" << '\n';
 
 //         }
 
 //     } else {
 //         std::cout << "Not executed" << '\n';
+//         std::cout << "Not executed" << '\n';
 
 //     }
 
 //     enemy = queue.peek();
+
+//     std::cout << enemy.getStringTemp() << '\n';
 
 //     return enemy;
 
@@ -129,6 +144,8 @@ Queue::~Queue() {
 
 //     }
 
+//     std::cout << '\n' << '\n';
+
 // }
 
 
@@ -139,10 +156,9 @@ Queue::~Queue() {
 //     enemyQueue->enqueue(Enemy(WATER, Size::MEDIUM, 3, "FOREST DEMON"));
 //     enemyQueue->enqueue(Enemy(WATER, Size::MEDIUM, 3, "MAGMA DEMON"));
 
-//     std::cout << enemyQueue->peek().getName() << '\n';
-//     enemyQueue->dequeue();
-//     std::cout << enemyQueue->peek().getName() << '\n';
+
 //     updateCharacterStatistics(viewEnemy(*enemyQueue));
 //     updateCharacterStatistics(viewEnemy(*enemyQueue, 1));
+//     updateCharacterStatistics(viewEnemy(*enemyQueue, 2));
 
 // }

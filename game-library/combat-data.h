@@ -31,7 +31,7 @@ private:
 public:
     Health();
     Health(int maxHealth);
-    int getCurrent();
+    int getCurrent() {return _current;};
     constexpr int getMax() {return _max;};
     void decrease(int damageAmount);
     void increase(int healedAmount);
@@ -45,7 +45,7 @@ private:
 public:
     Mana ();
     Mana (int maxMana);
-    int getCurrent();
+    int getCurrent() {return _current;};
     constexpr int getMax () {return _max;};
     void decrease (int consumedAmount);
     void increase (int regainedAmount);
@@ -55,13 +55,17 @@ class Spell {
 private:
     std::string _name;
     int _cost;
+    float _attackBonus;
+    Type _type;
 
 public:
     Spell ();
-    Spell (std::string name, int cost);
-    std::string getName () const {return _name;};
+    Spell (std::string name, int cost, float attackBonus, Type type);
+    std::string getName () {return _name;};
     constexpr int getCost () {return _cost;};
-    std::string getLabel () const;
+    constexpr int getAttackBonus () {return _attackBonus;};
+    constexpr Type getType () {return _type;};
+    std::string getLabel ();
 
 };
 
@@ -84,7 +88,7 @@ public:
     std::string getName() const {return _name;};
     TypeEffectivenessMultiplier checkTypeEffectiveness(Type opposingType);
     std::string getStringTemp();
-    bool isDefeated();
+    bool isDefeated () {return _health.getCurrent() == 0;};
     int takeDamage(int damage, Type opposingType);
 };
 
@@ -109,8 +113,9 @@ public:
     int getCurrentMana () {return _mana.getCurrent();};
     TypeEffectivenessMultiplier checkTypeEffectiveness (Type opposingType);
     std::string getStringTemp ();
-    bool isDefeated ();
+    bool isDefeated () {return _health.getCurrent() == 0;};
     int takeDamage (int damage, Type opposingType);
+    void consumeMana (int manaConsumed);
     void heal (int healAmount);
     void recoverMana ();
     void recoverMana (int manaRegainedAmount);

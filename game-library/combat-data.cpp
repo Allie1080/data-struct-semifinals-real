@@ -11,6 +11,7 @@ constexpr int AMOUNT_OF_TYPES = 4;
 constexpr int AMOUNT_OF_SIZES = 3;
 constexpr int AMOUNT_OF_POSSIBLE_ENEMIES = AMOUNT_OF_SIZES * AMOUNT_OF_TYPES;
 
+
 Health::Health () {
         _current = -1;
         _max = -1;
@@ -19,11 +20,6 @@ Health::Health () {
 Health::Health (int maxHealth) {
         _current = maxHealth;
         _max = maxHealth;
-
-    }
-
-int Health::getCurrent () {
-        return _current;
 
     }
 
@@ -91,17 +87,27 @@ void Mana::increase (int regainedAmount) {
 Spell::Spell () {
     _name = "MagicMissile";
     _cost = 5;
+    _attackBonus = 0.0;
+    _type = NORMAL;
 
 }
 
-Spell::Spell (std::string name, int cost) {
+Spell::Spell (std::string name, int cost, float attackBonus, Type type) {
     _name = name;
     _cost = cost;
+    _attackBonus = attackBonus;
+    _type = type;
 
 }
 
-std::string Spell::getLabel () const {
-    return ("%d MN -- %s", _cost, _name);
+std::string Spell::getLabel () {
+    std::stringstream label;
+    // std::array<char, 4> typeNames = {'N', 'F', 'W', 'G'};
+    // std::string type{typeNames[_type+1]};
+
+    label << _name << " -- " << _cost << " MN";
+
+    return label.str();
 
 }
 
@@ -172,13 +178,13 @@ TypeEffectivenessMultiplier Enemy::checkTypeEffectiveness (Type opposingType) {
     } else if (opposingType == _type) {
         return TypeEffectivenessMultiplier::SAME_TYPE;
 
-    } else if (opposingType == _type + 1) {
+    } else if (opposingType == ((_type != AMOUNT_OF_TYPES - 2) ? _type + 1 : 0 )) {
         return TypeEffectivenessMultiplier::VERY_EFFECTIVE;
 
     } else if (opposingType == Type::NORMAL) {
         return TypeEffectivenessMultiplier::NORMAL;
 
-    } else if (opposingType == (_type != 0) ? _type - 1 : AMOUNT_OF_TYPES - 1) {
+    } else if (opposingType == ((_type != 0) ? _type - 1 : AMOUNT_OF_TYPES - 2)) {
         return TypeEffectivenessMultiplier::IMMUNE;
 
     } else {
@@ -196,16 +202,6 @@ std::string Enemy::getStringTemp () {
 
     return stringStream.str();
 } 
-
-bool Enemy::isDefeated () {
-    if (_health.getCurrent() == 0) {
-        return true;
-
-    }
-
-    return false;
-
-}
 
 int Enemy::takeDamage (int damage, Type opposingType) {
     damage *= static_cast<int>(checkTypeEffectiveness(opposingType));
@@ -226,6 +222,8 @@ Player::Player () {
     _name = "Marisa";
     _shieldingType = Type::NORMAL;
     _health = Health(50);
+    _mana = Mana(50);
+    _manaRegainAmount = static_cast<int>(50 / 10);
     _attack = 5;
 
 }
@@ -311,15 +309,7 @@ std::string Player::getStringTemp () {
     return stringStream.str();
 } 
 
-bool Player::isDefeated () {
-    if (_health.getCurrent() == 0) {
-        return true;
 
-    }
-
-    return false;
-
-}
 
 int Player::takeDamage (int damage, Type opposingType) {
     damage *= static_cast<int>(checkTypeEffectiveness(opposingType));
@@ -336,18 +326,23 @@ int Player::takeDamage (int damage, Type opposingType) {
 
 }
 
+void Player::consumeMana (int manaConsumed) {
+    _mana.decrease(manaConsumed);
+
+}
+
 void Player::heal (int healAmount) {
     _health.increase(std::abs(healAmount));
 
 }
 
 void Player::recoverMana () {
-    _health.increase(std::abs(_manaRegainAmount));
+    _mana.increase(std::abs(_manaRegainAmount));
 
 }
 
 void Player::recoverMana (int regainedManaAmount) {
-    _health.increase(std::abs(regainedManaAmount));
+    _mana.increase(std::abs(regainedManaAmount));
 
 }
 

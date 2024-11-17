@@ -31,7 +31,11 @@ int Stack::pop () {
     sNode* temp = _top;
     _top = _top->_next;
     delete temp;
-    --_size;
+
+    if (!isEmpty()) {
+        --_size;
+
+    }
 
     return 0;
 

@@ -119,14 +119,11 @@ enum class Spells {
 Enemy viewEnemy (Queue queue, int placementIndex=0) {
     Enemy enemy;
   
-    if (placementIndex !=0) {
+    if (placementIndex != 0) {
         for (int counter{0}; counter < placementIndex; counter++) {
             queue.dequeue(true);
 
         }
-
-    } else {
-        std::cout << "Not executed" << '\n';
 
     }
 
@@ -136,7 +133,7 @@ Enemy viewEnemy (Queue queue, int placementIndex=0) {
 
 }
 
-void updateCharacterStatistics (Player *player) {
+void showCharacterHealth (Player *player) {
 
     if (player->getCurrentHealth() <= player->getCriticalHealth()) {
         ImGui::Text("Player HP: ");
@@ -151,7 +148,7 @@ void updateCharacterStatistics (Player *player) {
     
 }
 
-void updateCharacterStatistics (Enemy enemy, bool isFront=false) {
+void showCharacterHealth (Enemy enemy, bool isFront=false) {
     if (!isFront) {
         ImGui::TextDisabled("%s's HP:  %d/%d", enemy.getName().c_str(), enemy.getCurrentHealth(), enemy.getMaxHealth());
 
@@ -167,7 +164,12 @@ void updateCharacterStatistics (Enemy enemy, bool isFront=false) {
 
 }
 
-// void updateCharacterStatistics (Enemy *enemy, bool isFront=false) {
+void showPlayerMana (Player *player) {
+    ImGui::Text("Player MN:  %d/%d", player->getCurrentMana(), player->getMaxMana());
+
+}
+
+// void showCharacterHealth (Enemy *enemy, bool isFront=false) {
 //     if (!isFront) {
 //         ImGui::TextDisabled("%s's HP:  %d/%d", enemy->getName().c_str(), enemy->getCurrentHealth(), enemy->getMaxHealth());
 
@@ -196,46 +198,52 @@ bool isEnemyTurn (bool isPlayerTurn, std::chrono::time_point<std::chrono::system
     return false;
 }
 
-void castSpell (Player *player, Enemy *enemy, int spellIndex) {
-    float attackBonus;
-    Type attackType;
-    int healValue;
+void castSpell (Player *player, Enemy *enemy, Spell spell) {
     int spellAttackValue;
+    // float attackBonus;
+    // Type attackType;
+    // int healValue;
 
-    switch(static_cast<Spells>(spellIndex)) {
-        case Spells::MAGIC_MISSILE:
-            attackBonus = 0;
-            attackType = Type::NORMAL;
-            break;
+    // switch(static_cast<Spells>(spellIndex)) {
+    //     case Spells::MAGIC_MISSILE:
+    //         attackBonus = 0;
+    //         attackType = Type::NORMAL;
+    //         break;
 
-        case Spells::FLAMETHROWER:
-            attackBonus = 0.5;
-            attackType = Type::FIRE;
-            break;
+    //     case Spells::FLAMETHROWER:
+    //         attackBonus = 0.5;
+    //         attackType = Type::FIRE;
+    //         break;
             
-        case Spells::WATERGUN:
-            attackBonus = 0.3;
-            attackType = Type::WATER;
-            break;
+    //     case Spells::WATERGUN:
+    //         attackBonus = 0.3;
+    //         attackType = Type::WATER;
+    //         break;
 
-        case Spells::SAP_LIFE:
-            attackBonus = -0.1;
-            attackType = Type::GRASS;
-            break;
+    //     case Spells::SAP_LIFE:
+    //         attackBonus = -0.1;
+    //         attackType = Type::GRASS;
+    //         break;
 
+
+    // }
+
+    if (spell.getCost() > player->getCurrentMana()) {
+        return;
 
     }
 
-    spellAttackValue = player->getAttack() + (player->getAttack() * attackBonus);
+    spellAttackValue = player->getAttack() + (player->getAttack() * spell.getAttackBonus());
 
-    if (attackType == Type::GRASS) {
-        player->heal(enemy->takeDamage(spellAttackValue, attackType));
+    if (spell.getType() == Type::GRASS) {
+        player->heal(enemy->takeDamage(spellAttackValue, spell.getType()) >> 1);
 
     } else {
-        enemy->takeDamage(spellAttackValue, attackType);
+        enemy->takeDamage(spellAttackValue, spell.getType());
 
     }
 
+    player->consumeMana(spell.getCost());
 
 }
 
@@ -308,20 +316,26 @@ int main () {
     static bool isPlayerTurn{true};
     static std::chrono::time_point<std::chrono::system_clock> lastTurn = std::chrono::system_clock::now(); // should be 2 seconds after this before the enemy makes a move
     
-    static std::string spells[] = {"Magic Missile", "Flame Thrower", "Watergun", "Leech Life"};
+    static Spell spells[] = {
+        Spell("Magic Missile", 5, 0.0, NORMAL), 
+        Spell("Fireball", 8, 0.5, FIRE), 
+        Spell("Watercannon", 6, 0.3, WATER), 
+        Spell("Leech Life", 7, -0.1, GRASS)
+    
+    };
     static int spellSelected{0};
 
     static Queue *enemyQueue = new Queue();
+    enemyQueue->enqueue(Enemy(FIRE, Size::MEDIUM, 5, "MAGMA DEMON"));
+    enemyQueue->enqueue(Enemy(GRASS, Size::MEDIUM, 3, "FOREST DEMON"));
     enemyQueue->enqueue(Enemy(WATER, Size::MEDIUM, 3, "OCEAN DEMON"));
-    enemyQueue->enqueue(Enemy(WATER, Size::MEDIUM, 3, "FOREST DEMON"));
-    enemyQueue->enqueue(Enemy(WATER, Size::MEDIUM, 3, "MAGMA DEMON"));
 
-    static Player *player = new Player(100, NORMAL);
+    static Player *player = new Player(100, 50, NORMAL);
     Enemy currentEnemyValue = enemyQueue->peek();
     Enemy *currentEnemy = &currentEnemyValue;
 
     Enemy secondEnemyPreview = viewEnemy(*enemyQueue, 1);
-    Enemy lastEnemyPreview = viewEnemy(*enemyQueue);
+    Enemy lastEnemyPreview = viewEnemy(*enemyQueue, 2);
 
 
     // Main loop
@@ -375,16 +389,66 @@ int main () {
                 ImGui::BeginTable("MainInterface", 2);
                     ImGui::TableNextRow(0, TABLE_ROW_HEIGHT);
                         ImGui::TableSetColumnIndex(0);
-                            updateCharacterStatistics(player);
+                            showCharacterHealth(player);
+
                         ImGui::TableSetColumnIndex(1);
-                            updateCharacterStatistics(currentEnemyValue, true);
+                            showCharacterHealth(currentEnemyValue, true);
 
                     ImGui::TableNextRow(0, TABLE_ROW_HEIGHT);
                         ImGui::TableSetColumnIndex(0);
 
                         ImGui::TableSetColumnIndex(1);
-                            updateCharacterStatistics(secondEnemyPreview);
+                            showCharacterHealth(secondEnemyPreview);
 
+                    ImGui::TableNextRow(0, TABLE_ROW_HEIGHT);
+                        ImGui::TableSetColumnIndex(0);
+                            showPlayerMana(player);
+
+                        ImGui::TableSetColumnIndex(1);
+                            showCharacterHealth(lastEnemyPreview);
+
+                    ImGui::TableNextRow(0, TABLE_ROW_HEIGHT);
+                        ImGui::TableSetColumnIndex(0);
+                            if (buttonsDisabled) {
+                                ImGui::BeginDisabled();
+
+                            }
+
+                            if (ImGui::Button("Cast Spell") & !buttonsDisabled) {
+                                castSpell(player, currentEnemy, spells[spellSelected]);
+                                isPlayerTurn = false;
+                                lastTurn = std::chrono::system_clock::now();
+
+                            } 
+
+                            if (buttonsDisabled) {
+                                ImGui::EndDisabled();
+
+                            }
+
+
+                        ImGui::TableSetColumnIndex(1);
+                            static ImGuiComboFlags comboFlags = 0;
+                            comboFlags &= ~ImGuiComboFlags_NoPreview; 
+
+                            if (ImGui::BeginCombo("", spells[spellSelected].getName().c_str(), comboFlags)) {
+                                for (int index{0}; index < IM_ARRAYSIZE(spells); index++) {
+                                        static bool is_selected = (spellSelected == index);
+                                        
+                                        if (ImGui::Selectable(spells[index].getLabel().c_str())) {
+                                            spellSelected = index;
+
+                                        }
+
+                                        if (is_selected) {
+                                                ImGui::SetItemDefaultFocus();
+
+                                        }
+
+                                }
+                                ImGui::EndCombo();
+
+                            }
                     ImGui::TableNextRow(0, TABLE_ROW_HEIGHT);
                         ImGui::TableSetColumnIndex(0);
                             if (buttonsDisabled) {
@@ -405,47 +469,6 @@ int main () {
                             }
 
                         ImGui::TableSetColumnIndex(1);
-                            updateCharacterStatistics(lastEnemyPreview);
-
-                    ImGui::TableNextRow(0, TABLE_ROW_HEIGHT);
-                        ImGui::TableSetColumnIndex(0);
-                            if (buttonsDisabled) {
-                                ImGui::BeginDisabled();
-
-                            }
-
-                            if (ImGui::Button("Cast Spell") & !buttonsDisabled) {
-                                castSpell(player, currentEnemy, spellSelected);
-                                isPlayerTurn = false;
-                                lastTurn = std::chrono::system_clock::now();
-
-                            } 
-
-                            if (buttonsDisabled) {
-                                ImGui::EndDisabled();
-
-                            }
-
-
-                        ImGui::TableSetColumnIndex(1);
-                            if (ImGui::BeginCombo("", spells[spellSelected].c_str())) {
-                                for (int index{0}; index < size(spells); index++) {
-                                        const bool is_selected = (spellSelected == index);
-                                        
-                                        if (ImGui::Selectable(spells[index].c_str(), is_selected)) {
-                                            spellSelected = index;
-
-                                        }
-
-                                        if (is_selected) {
-                                                ImGui::SetItemDefaultFocus();
-
-                                        }
-
-                                }
-                                ImGui::EndCombo();
-
-                            }
 
                 ImGui::EndTable();
 
@@ -459,20 +482,21 @@ int main () {
 
                 if (isEnemyTurn(isPlayerTurn, lastTurn) & !(gameWon | gameLost)) {
                     player->takeDamage(currentEnemy->getAttack(), currentEnemy->getType());
+                    player->recoverMana();
                     isPlayerTurn = true;
                     buttonsDisabled = false;
 
                 } 
 
-                if (currentEnemy->getCurrentHealth() == 0) {
+                if (currentEnemy->isDefeated()) {
                     gameWon = true;
 
-                } else if (player->getCurrentHealth() == 0) {
+                } else if (player->isDefeated()) {
                     gameLost = true;
 
                 }
 
-                ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
+                // ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
             ImGui::End();
         }
 
