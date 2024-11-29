@@ -89,6 +89,7 @@ public:
     TypeEffectivenessMultiplier checkTypeEffectiveness(Type opposingType);
     std::string getStringTemp();
     bool isDefeated () {return _health.getCurrent() == 0;};
+    bool isCriticalHealth () {return _health.getCurrent() <= getCriticalHealth();};
     int takeDamage(int damage, Type opposingType);
 };
 
@@ -132,6 +133,8 @@ struct Action {
     Action();
 
 };
+
+int getRandomNumber(int minimum, int maximum);
 
 
 #endif // COMBAT_DATA_H

@@ -127,7 +127,7 @@ Enemy viewEnemy (Queue queue, int placementIndex=0) {
 
     }
 
-    enemy = queue.peek();
+    enemy = *queue.peek();
 
     return enemy;
 
@@ -247,6 +247,11 @@ void castSpell (Player *player, Enemy *enemy, Spell spell) {
 
 }
 
+void performEnemyAction (Player *player, Enemy *enemy) {
+
+
+}
+
 
 
 int main () {
@@ -311,7 +316,8 @@ int main () {
      
     static bool gameWon{false};
     static bool gameLost{false};
-    static int gameScore{10000};
+    static int gameScore{9000};
+    static bool gameScoreIsCalculated{false};
 
     static bool isPlayerTurn{true};
     static std::chrono::time_point<std::chrono::system_clock> lastTurn = std::chrono::system_clock::now(); // should be 2 seconds after this before the enemy makes a move
@@ -331,12 +337,14 @@ int main () {
     enemyQueue->enqueue(Enemy(WATER, Size::MEDIUM, 3, "OCEAN DEMON"));
 
     static Player *player = new Player(100, 50, NORMAL);
-    Enemy currentEnemyValue = enemyQueue->peek();
-    Enemy *currentEnemy = &currentEnemyValue;
+    // static Enemy currentEnemyValue = enemyQueue->peek();
+    // static Enemy *currentEnemy = &currentEnemyValue;
 
-    Enemy secondEnemyPreview = viewEnemy(*enemyQueue, 1);
-    Enemy lastEnemyPreview = viewEnemy(*enemyQueue, 2);
+    // static Enemy secondEnemyPreview = viewEnemy(*enemyQueue, 1);
+    // static Enemy lastEnemyPreview = viewEnemy(*enemyQueue, 2);
 
+    static int enemySwitchChance = 0;
+    static int switchChanceThreshold = 10;
 
     // Main loop
     bool done = false;
@@ -381,7 +389,7 @@ int main () {
                     // buttonsDisabled = false;
 
                 } else {
-                    ImGui::TextColored(RED, "%s's turn...", currentEnemy->getName().c_str());
+                    ImGui::TextColored(RED, "%s's turn...", (*enemyQueue->peek()).getName().c_str());
                     clear_color = RED; 
 
                 }
@@ -392,20 +400,20 @@ int main () {
                             showCharacterHealth(player);
 
                         ImGui::TableSetColumnIndex(1);
-                            showCharacterHealth(currentEnemyValue, true);
+                            showCharacterHealth((*enemyQueue->peek()), true);
 
                     ImGui::TableNextRow(0, TABLE_ROW_HEIGHT);
                         ImGui::TableSetColumnIndex(0);
 
                         ImGui::TableSetColumnIndex(1);
-                            showCharacterHealth(secondEnemyPreview);
+                            showCharacterHealth(viewEnemy(*enemyQueue, 1));
 
                     ImGui::TableNextRow(0, TABLE_ROW_HEIGHT);
                         ImGui::TableSetColumnIndex(0);
                             showPlayerMana(player);
 
                         ImGui::TableSetColumnIndex(1);
-                            showCharacterHealth(lastEnemyPreview);
+                            showCharacterHealth(viewEnemy(*enemyQueue, 2));
 
                     ImGui::TableNextRow(0, TABLE_ROW_HEIGHT);
                         ImGui::TableSetColumnIndex(0);
@@ -415,7 +423,7 @@ int main () {
                             }
 
                             if (ImGui::Button("Cast Spell") & !buttonsDisabled) {
-                                castSpell(player, currentEnemy, spells[spellSelected]);
+                                castSpell(player, enemyQueue->peek(), spells[spellSelected]);
                                 isPlayerTurn = false;
                                 lastTurn = std::chrono::system_clock::now();
 
@@ -480,18 +488,44 @@ int main () {
 
                 }
 
+
                 if (isEnemyTurn(isPlayerTurn, lastTurn) & !(gameWon | gameLost)) {
-                    player->takeDamage(currentEnemy->getAttack(), currentEnemy->getType());
+                    if (enemyQueue->peek()->isCriticalHealth()) {
+                        enemySwitchChance = switchChanceThreshold;
+
+                    } else {
+                        enemySwitchChance = getRandomNumber(0, switchChanceThreshold);
+
+                    }
+
+                    if (enemySwitchChance >= switchChanceThreshold) {
+                        for (int counter{0}; counter < enemyQueue->getSize(); counter++) {
+                            enemyQueue->rotateQueue();
+
+                            if (!enemyQueue->peek()->isDefeated()) {
+                                break;
+
+                            } else if (counter == enemyQueue->getSize() - 1) {
+                                gameWon = true;
+
+                            }
+
+                        }
+                        
+
+                    } else {
+                        enemyQueue->peek()->getMaxHealth() / enemyQueue->peek()->getCurrentHealth();
+                        player->takeDamage(enemyQueue->peek()->getAttack(), enemyQueue->peek()->getType());
+
+                    }
+
                     player->recoverMana();
                     isPlayerTurn = true;
                     buttonsDisabled = false;
 
                 } 
-
-                if (currentEnemy->isDefeated()) {
-                    gameWon = true;
-
-                } else if (player->isDefeated()) {
+                    
+                if (player->isDefeated()) {
                     gameLost = true;
 
                 }
@@ -503,8 +537,16 @@ int main () {
         if (gameWon | gameLost) {
             buttonsDisabled = true;
 
+            if (!gameScoreIsCalculated) {
+                gameScore -= 100 * (100 - player->getCurrentHealth());
+                gameScoreIsCalculated = true;
+            }
+            
             ImGui::Begin("GAME OVER");
+        
                 ImGui::Text(((gameWon) ? "You won!" : "You lost!"));
+                ImGui::Text("Final Score: %d", gameScore);
+
             ImGui::End();
 
         } 

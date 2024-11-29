@@ -76,13 +76,19 @@ int Queue::dequeue (bool isInsideFunction=false) {
     return 0;
 }
 
-Enemy Queue::peek() {
+void Queue::rotateQueue() {
+    enqueue(*peek());
+    dequeue(true);
+
+}
+
+Enemy *Queue::peek() {
     if (isEmpty()) {
-        return Enemy();
+        return nullptr; // seems dangerous
 
     }
 
-    return _front->_data;
+    return &_front->_data;
 
 }
 

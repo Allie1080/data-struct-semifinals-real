@@ -44,8 +44,8 @@ public:
     ~Queue();
     void enqueue(Enemy data);
     int dequeue(bool isInsideFunction);
-    // int rotateQueue();
-    Enemy peek(); 
+    void rotateQueue();
+    Enemy *peek(); 
     int getSize() const;
     bool isEmpty() const;
 };
