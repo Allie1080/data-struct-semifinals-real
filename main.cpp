@@ -316,7 +316,7 @@ int main () {
      
     static bool gameWon{false};
     static bool gameLost{false};
-    static int gameScore{9000};
+    static int gameScore{7000};
     static bool gameScoreIsCalculated{false};
 
     static bool isPlayerTurn{true};
@@ -538,8 +538,20 @@ int main () {
             buttonsDisabled = true;
 
             if (!gameScoreIsCalculated) {
-                gameScore -= 100 * (100 - player->getCurrentHealth());
+                gameScore -= 20 * (100 - player->getCurrentHealth());
+
+                for (int counter{0}; counter < enemyQueue->getSize(); counter++) {
+                    if (enemyQueue->peek()->isDefeated()) {
+                        gameScore += 1000;
+
+                    }
+
+                    enemyQueue->rotateQueue();
+
+                }
+
                 gameScoreIsCalculated = true;
+
             }
             
             ImGui::Begin("GAME OVER");
