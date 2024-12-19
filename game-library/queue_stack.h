@@ -26,8 +26,8 @@ public:
     Stack();
     ~Stack();
     void push(Action data);
-    int pop();
-    Action peek();
+    int pop(bool isInsideFunction=false);
+    Action peek(int place=0);
     int getSize() const;
     bool isEmpty() const;
 

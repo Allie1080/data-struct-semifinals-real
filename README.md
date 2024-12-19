@@ -1,7 +1,7 @@
 # data-struct-semifinals-real
 
 ## Stable Builds:
-- None
+- 
 
 ## Goals:
 - ~~Enemy Type Integration~~

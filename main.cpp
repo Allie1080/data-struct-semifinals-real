@@ -124,7 +124,7 @@ Enemy viewEnemy (Queue queue, int placementIndex=0) {
             queue.dequeue(true);
 
         }
-
+   
     }
 
     enemy = *queue.peek();
@@ -169,6 +169,33 @@ void showPlayerMana (Player *player) {
 
 }
 
+void showAction (Stack *actionStack, int place=0) {
+    if (actionStack->isEmpty() | (place == 1 & actionStack->getSize() < 2)) {
+        ImGui::TextColored(LIGHT_GRAY, "Action messages go here...");
+
+    } else {
+        ImGui::Text(actionStack->peek(place).getActionMessage().c_str());
+
+    }
+
+}
+
+// void showLatestActions (Stack *actionStack) {
+//     Stack actionStackDisplay = *actionStack;
+
+//     showAction(actionStackDisplay);
+
+//     if (!actionStackDisplay.isEmpty()) {
+//         ImGui::Text("Action stack pop is %d", actionStackDisplay.pop(true));
+
+//     }
+
+//     showAction(actionStackDisplay);
+
+    
+
+// }
+
 // void showCharacterHealth (Enemy *enemy, bool isFront=false) {
 //     if (!isFront) {
 //         ImGui::TextDisabled("%s's HP:  %d/%d", enemy->getName().c_str(), enemy->getCurrentHealth(), enemy->getMaxHealth());
@@ -187,19 +214,23 @@ void showPlayerMana (Player *player) {
 
 bool isEnemyTurn (bool isPlayerTurn, std::chrono::time_point<std::chrono::system_clock> lastTurn) {
     if (isPlayerTurn) {
+        // ImGui::Text("Is player turn");
         return false;
 
     }
 
     if (std::chrono::system_clock::now() - lastTurn > std::chrono::duration<double>(2.0)) {
+        // ImGui::Text("Is player turn still");
         return true;
     }
 
+    ImGui::Text("Is no longer player turn");
     return false;
 }
 
-void castSpell (Player *player, Enemy *enemy, Spell spell) {
+void castSpell (Player *player, Enemy *enemy, Spell spell, Stack *actionStack) {
     int spellAttackValue;
+    int enemyDamageValue;
     // float attackBonus;
     // Type attackType;
     // int healValue;
@@ -234,12 +265,14 @@ void castSpell (Player *player, Enemy *enemy, Spell spell) {
     }
 
     spellAttackValue = player->getAttack() + (player->getAttack() * spell.getAttackBonus());
+    enemyDamageValue = enemy->takeDamage(spellAttackValue, spell.getType());
+    // ImGui::Text("Action to push");
+    actionStack->push(Action(enemy->getName(), spell.getName(), "DAMAGE", enemyDamageValue));
+    // ImGui::Text("Action pushed"); // it was pushed
 
     if (spell.getType() == Type::GRASS) {
-        player->heal(enemy->takeDamage(spellAttackValue, spell.getType()) >> 1);
-
-    } else {
-        enemy->takeDamage(spellAttackValue, spell.getType());
+        player->heal(enemyDamageValue >> 1);
+        actionStack->push(Action("PLAYER", spell.getName(), "HEAL", enemyDamageValue >> 1));
 
     }
 
@@ -346,6 +379,8 @@ int main () {
     static int enemySwitchChance = 0;
     static int switchChanceThreshold = 10;
 
+    static Stack *actionStack = new Stack();
+
     // Main loop
     bool done = false;
     while (!done)
@@ -380,15 +415,18 @@ int main () {
 
             ImGui::Begin("Game Window");
 
+                // ImGui::Text("Action stack is %d", actionStack->getSize());
                 if (gameWon | gameLost) {
                     ImGui::TextColored(LIGHT_GRAY, "GAME OVER");
 
                 } else if (isPlayerTurn) {
+                    ImGui::Text("Attemt to show player");
                     ImGui::TextColored(GREEN, "Player's turn...");
                     clear_color = BLACK;
-                    // buttonsDisabled = false;
+                    
 
                 } else {
+                    ImGui::Text("Attempt to show enemy");
                     ImGui::TextColored(RED, "%s's turn...", (*enemyQueue->peek()).getName().c_str());
                     clear_color = RED; 
 
@@ -423,9 +461,11 @@ int main () {
                             }
 
                             if (ImGui::Button("Cast Spell") & !buttonsDisabled) {
-                                castSpell(player, enemyQueue->peek(), spells[spellSelected]);
+                                castSpell(player, enemyQueue->peek(), spells[spellSelected], actionStack);
+                                // ImGui::Text("Spell cast executed");
                                 isPlayerTurn = false;
                                 lastTurn = std::chrono::system_clock::now();
+                                // ImGui::Text("last turn counted");
 
                             } 
 
@@ -477,6 +517,10 @@ int main () {
                             }
 
                         ImGui::TableSetColumnIndex(1);
+                            showAction(actionStack);
+                            showAction(actionStack, 1);
+                            // ImGui::Text("Stack is %d", actionStack->isEmpty());
+
 
                 ImGui::EndTable();
 
@@ -488,8 +532,9 @@ int main () {
 
                 }
 
-
                 if (isEnemyTurn(isPlayerTurn, lastTurn) & !(gameWon | gameLost)) {
+                    // ImGui::Text("Start enemy action");
+
                     if (enemyQueue->peek()->isCriticalHealth()) {
                         enemySwitchChance = switchChanceThreshold;
 
@@ -497,6 +542,7 @@ int main () {
                         enemySwitchChance = getRandomNumber(0, switchChanceThreshold);
 
                     }
+                    // ImGui::Text("Switch chance calculated");
 
                     if (enemySwitchChance >= switchChanceThreshold) {
                         for (int counter{0}; counter < enemyQueue->getSize(); counter++) {
@@ -519,16 +565,24 @@ int main () {
 
                     }
 
+                    // ImGui::Text("Enemy action end");
                     player->recoverMana();
+                    // ImGui::Text("Player recover mana");
                     isPlayerTurn = true;
+                    // ImGui::Text("Player turn again");
                     buttonsDisabled = false;
+                    // ImGui::Text("Buttons undisabled");
 
                 } 
+                // ImGui::Text("Passed enemy turn check %d", actionStack->getSize());
                     
                 if (player->isDefeated()) {
                     gameLost = true;
+                    ImGui::Text("PLayer defeated is %d", gameLost);
 
                 }
+
+                // ImGui::Text("Passed player defeated check %d", actionStack->getSize());
 
                 // ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
             ImGui::End();

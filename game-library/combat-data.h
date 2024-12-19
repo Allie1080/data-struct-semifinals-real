@@ -124,13 +124,21 @@ public:
 
 };
 
-struct Action {
-    std::string _type;
+class Action {
+private:
+    std::string _targetName;
+    std::string _actionType;
+    std::string _spellName;
     int _value;
-    Player* _playerTarget;
-    Enemy* _enemyTarget;
-
+    
+public:
     Action();
+    Action(std::string targetName, std::string spellName, std::string actionType, int value);
+    constexpr int getValue() const {return _value;};
+    std::string getActionType() const {return _actionType;};
+    std::string getSpellName() const {return _spellName;};
+    std::string getTargetName() const {return _targetName;};
+    std::string getActionMessage() const;
 
 };
 

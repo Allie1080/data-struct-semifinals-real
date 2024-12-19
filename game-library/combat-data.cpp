@@ -380,9 +380,39 @@ Enemy getRandomEnemy (int level) {
 
 }
 
-
 Action::Action () {
-    _type = "None";
+    _targetName = "NONE";
+    _actionType = "NONE";
+    _spellName = "NONE";
     _value = -1;
+
+}
+
+Action::Action(std::string targetName, std::string spellName, std::string actionType, int value) {
+    _targetName = targetName;
+    _actionType = actionType;
+    _spellName = spellName;
+    _value = value;
+
+}
+
+std::string Action::getActionMessage() const {
+    std::stringstream actionMessage;
+
+    if (_actionType == "DAMAGE") {
+        actionMessage << _targetName << " loses " << _value << " HP";
+
+    } else if (_actionType == "HEAL") {
+        actionMessage << _targetName << " gains " << _value << " HP";
+
+    } else if (_actionType == "NONE") {
+        actionMessage << "EMPTY ERROR";
+
+    } else {
+        actionMessage << "UNIDENTIFIED ERROR";
+
+    }
+
+    return actionMessage.str();
 
 }
